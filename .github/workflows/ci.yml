@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Test (PG ${{ matrix.pg }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        pg: [14, 15, 16, 17]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL ${{ matrix.pg }}
+        run: |
+          sudo apt-get install -y gnupg curl
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y \
+            postgresql-${{ matrix.pg }} \
+            postgresql-server-dev-${{ matrix.pg }}
+
+      - name: Build
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg }}/bin:$PATH"
+          make
+
+      - name: Install
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg }}/bin:$PATH"
+          sudo env PATH="$PATH" make install
+
+      - name: Start PostgreSQL
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg }}/bin:$PATH"
+          sudo systemctl stop postgresql || true
+          initdb -D /tmp/pgdata
+          echo "shared_preload_libraries = 'pg_roast'" >> /tmp/pgdata/postgresql.conf
+          echo "pg_roast.database = 'postgres'" >> /tmp/pgdata/postgresql.conf
+          echo "unix_socket_directories = '/tmp'" >> /tmp/pgdata/postgresql.conf
+          pg_ctl -D /tmp/pgdata -l /tmp/pg.log -w start || (cat /tmp/pg.log && exit 1)
+
+      - name: Create extension and run audit
+        run: |
+          export PATH="/usr/lib/postgresql/${{ matrix.pg }}/bin:$PATH"
+          psql -h /tmp -U $(whoami) postgres -c "CREATE EXTENSION pg_roast;"
+          psql -h /tmp -U $(whoami) postgres -c "SELECT * FROM roast.run();"
+          psql -h /tmp -U $(whoami) postgres -c "SELECT count(*) FROM roast.latest;"
