@@ -3,11 +3,20 @@
 A PostgreSQL extension that automatically audits your database and harshly judges everything it finds. Inspired by the book [PostgreSQL Mistakes and How to Avoid Them](https://www.manning.com/books/postgresql-mistakes-and-how-to-avoid-them).
 
 ```
- CRITICAL | nullable_majority         | public.events         | Table public.events has 68% nullable columns. What does a valid row even look like?
- CRITICAL | superuser_app_connection  | postgres              | Superuser postgres is connected from 10.0.0.5 running "myapp". A SQL injection is now a full database takeover.
- CRITICAL | fsync_off                 | fsync                 | fsync is OFF. If the server crashes, you will lose committed data and may end up with a corrupt cluster.
- WARNING  | offset_pagination         | SELECT * FROM ...     | A high-frequency query uses OFFSET for pagination. OFFSET scans from the beginning every time.
- WARNING  | col_float                 | public.orders.price   | Column public.orders.price is a floating-point type. If this stores money, you will have rounding errors. Use NUMERIC.
+CRITICAL | nullable_majority | public.events
+  → Table public.events has 68% nullable columns. What does a valid row even look like?
+
+CRITICAL | superuser_app_connection | postgres
+  → Superuser postgres is connected from 10.0.0.5 running "myapp". A SQL injection is now a full database takeover.
+
+CRITICAL | fsync_off | fsync
+  → fsync is OFF. If the server crashes, you will lose committed data and may end up with a corrupt cluster.
+
+WARNING  | offset_pagination | SELECT * FROM orders ...
+  → A high-frequency query uses OFFSET for pagination. OFFSET scans from the beginning every time.
+
+WARNING  | col_float | public.orders.price
+  → Column public.orders.price is a floating-point type. If this stores money, you will have rounding errors. Use NUMERIC.
 ```
 
 ### How is this different from pganalyze?
