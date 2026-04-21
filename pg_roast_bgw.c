@@ -12,7 +12,7 @@
 #include "miscadmin.h"
 #include "pg_roast.h"
 
-void
+PGDLLEXPORT void
 pg_roast_bgw_main(Datum main_arg)
 {
     pqsignal(SIGTERM, SignalHandlerForShutdownRequest);
